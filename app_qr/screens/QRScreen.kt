@@ -3,6 +3,7 @@ package com.example.app_qr.screens
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,12 +24,35 @@ import com.journeyapps.barcodescanner.BarcodeEncoder
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.tooling.preview.Preview
 
+// Enumeración interna para alternar entre ambos contenidos de códigos QR
+enum class QrResourceType {
+    OFERTA_EDUCATIVA,
+    RETICULA_PDF
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QRScreen(navController: NavController) {
-    // Generación del código QR apuntando directamente al sitio oficial del TecNM Zongolica
-    val qrBitmap = remember {
-        generateQRCode("https://zongolica.tecnm.mx/?oferta-educativa=ing-en-sistemas-computacionales")
+    // Enlaces de destino oficiales
+    val urlOferta = "https://zongolica.tecnm.mx/?oferta-educativa=ing-en-sistemas-computacionales"
+    // Enlace directo de descarga optimizado con el ID de tu archivo de Google Drive
+    val urlReticulaPdf = "https://drive.google.com/uc?export=download&id=1L_7vxjUu8eHDAPL8g9yUxw6ORlMtL03T"
+
+    // Estado para controlar qué QR se encuentra activo actualmente
+    var selectedTab by remember { mutableStateOf(QrResourceType.OFERTA_EDUCATIVA) }
+
+    // Cambia el contenido del texto y del QR dinámicamente según la pestaña seleccionada
+    val currentUrl = if (selectedTab == QrResourceType.OFERTA_EDUCATIVA) urlOferta else urlReticulaPdf
+    val currentTitle = if (selectedTab == QrResourceType.OFERTA_EDUCATIVA) "📱 ¡Conoce tu Carrera!" else "📄 Plan de Estudios"
+    val currentDescription = if (selectedTab == QrResourceType.OFERTA_EDUCATIVA) {
+        "Escanéame para abrir el portal oficial del TecNM Campus Zongolica y descubrir más de Ingeniería en Sistemas Computacionales"
+    } else {
+        "Escanéame para descargar directamente el PDF oficial de la retícula curricular del plan ISIC-2010-224"
+    }
+
+    // Generación del código QR de forma reactiva al cambiar la pestaña seleccionada
+    val qrBitmap = remember(currentUrl) {
+        generateQRCode(currentUrl)
     }
 
     Scaffold(
@@ -77,8 +101,57 @@ fun QRScreen(navController: NavController) {
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    
+                    // Selector de Pestañas Interactivas (Para cambiar entre QR Oferta y QR PDF)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 20.dp)
+                            .background(Color(0xFFE0E0E0), RoundedCornerShape(8.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(
+                                    if (selectedTab == QrResourceType.OFERTA_EDUCATIVA) Color(0xFF1A237E) else Color.Transparent,
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .clickable { selectedTab = QrResourceType.OFERTA_EDUCATIVA }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Portal Web",
+                                color = if (selectedTab == QrResourceType.OFERTA_EDUCATIVA) Color.White else Color.Black,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(
+                                    if (selectedTab == QrResourceType.RETICULA_PDF) Color(0xFF1A237E) else Color.Transparent,
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .clickable { selectedTab = QrResourceType.RETICULA_PDF }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Descargar PDF",
+                                color = if (selectedTab == QrResourceType.RETICULA_PDF) Color.White else Color.Black,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+
+                    // Título dinámico
                     Text(
-                        text = "📱 ¡Conoce tu Carrera!",
+                        text = currentTitle,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1A237E),
@@ -87,8 +160,9 @@ fun QRScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Descripción dinámica
                     Text(
-                        text = "Escanéame para abrir el portal oficial del TecNM Campus Zongolica y descubrir más de Ingeniería en Sistemas Computacionales",
+                        text = currentDescription,
                         color = Color.Gray,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
@@ -98,10 +172,11 @@ fun QRScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    // Renderizado del código QR dinámico según el estado seleccionado
                     qrBitmap?.let {
                         Image(
                             bitmap = it.asImageBitmap(),
-                            contentDescription = "Código QR de Oferta Educativa",
+                            contentDescription = "Código QR interactivo",
                             modifier = Modifier.size(230.dp)
                         )
                     }
@@ -128,7 +203,7 @@ fun QRScreen(navController: NavController) {
     }
 }
 
-// Función utilitaria usando la librería ZXing para generar el código QR como un Bitmap
+// Función utilitaria usando la librería ZXing para generar el código QR como un Bitmap (Intacta)
 fun generateQRCode(content: String): Bitmap? {
     return try {
         val multiFormatWriter = MultiFormatWriter()
